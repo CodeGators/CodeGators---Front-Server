@@ -1,0 +1,90 @@
+-- esse arquivo ele satisfaz a cricao do nosso banco, relacionamento entre tabelas e utilizacao de funcoes entre tabelas
+
+
+drop table estados, biomas, risco_fogo,focos_calor,areas_queimadas
+
+create extension if not exists postgis
+
+create table estados (
+	id_estador serial primary key,
+	nome varchar(100) not null,
+	sigla char (2) not null,
+	geocodigo varchar (20),
+	geometria geometry(point, 4326)
+);	
+
+create table biomas (
+	id_biomas serial primary key,
+	nome_biomas varchar(100) not null,
+	geometria_biomas geometry(point, 4326),
+	id_estado int references estados(id_estador)
+);
+
+create table risco_fogo(
+	id_risco_fogo serial primary key,
+	data_2 date not null,
+	nivel_risco decimal(5,2),
+	id_estado int references estados(id_estador),
+	id_bioma int references biomas(id_biomas)
+);
+
+create table focos_calor(
+	id_focos_calor serial primary key,
+	data_c2 date not null,
+	latitude_longitude decimal (10,6),
+	satelite varchar (50) not null,
+	municipio varchar (100) not null,
+	id_bioma int references biomas(id_biomas)
+);
+
+create table areas_queimadas(
+	id_areas_queimadas serial primary key,
+	data_a2 date not null,
+	area_ha decimal (15,2) not null,
+	geometria_areas geometry(point, 4326),
+	id_estado int references estados(id_estador),
+	id_bioma int references biomas(id_biomas)
+);
+
+
+create table estados_focos_calor (
+    id_estados_focos_calor serial primary key,
+    id_estado int references estados(id_estador),
+    id_foco_calor int references focos_calor(id_focos_calor)
+);
+
+SELECT e.nome AS estado, f.data_c2 AS data_foco_calor, f.latitude_longitude, f.satelite, f.municipio
+FROM estados e
+INNER JOIN estados_focos_calor efc ON e.id_estador = efc.id_estado
+INNER JOIN focos_calor f ON efc.id_foco_calor = f.id_focos_calor;
+
+
+
+SELECT e.nome AS estado, r.data_2 AS data_risco_fogo, r.nivel_risco
+FROM estados e
+INNER JOIN risco_fogo r ON e.id_estador = r.id_estado;
+
+
+SELECT e.nome AS estado, a.data_a2 AS data_area_queimada, a.area_ha
+FROM estados e
+INNER JOIN areas_queimadas a ON e.id_estador = a.id_estado;
+
+
+SELECT e.nome AS estado, b.nome_biomas
+FROM estados e
+INNER JOIN biomas b ON e.id_estador = b.id_estado;
+
+
+SELECT b.nome_biomas, f.data_c2 AS data_foco_calor, f.latitude_longitude, f.satelite, f.municipio
+FROM biomas b
+INNER JOIN focos_calor f ON b.id_biomas = f.id_bioma;
+
+
+SELECT b.nome_biomas, r.data_2 AS data_risco_fogo, r.nivel_risco
+FROM biomas b
+INNER JOIN risco_fogo r ON b.id_biomas = r.id_bioma;
+
+
+SELECT b.nome_biomas, a.data_a2 AS data_area_queimada, a.area_ha
+FROM biomas b
+INNER JOIN areas_queimadas a ON b.id_biomas = a.id_bioma;
