@@ -1,0 +1,96 @@
+// este arquivo contempla o requisito do professor de estrutura de dados, tem como conteudo (constructor and metodo)
+
+class Estado {
+    idestados: number;
+    name: string;
+    sigla: string;
+    geocodigo: string;
+    geometry: any; // Ou um tipo mais específico para geometria se disponível
+
+    constructor(
+        idestados: number,
+        name: string,
+        sigla: string,
+        geocodigo: string,
+        geometry: any
+    ) {
+        this.idestados = idestados;
+        this.name = name;
+        this.sigla = sigla;
+        this.geocodigo = geocodigo;
+        this.geometry = geometry;
+    }
+}
+
+class Bioma {
+    idiomas: number;
+    name: string;
+    geometry: any;
+
+    constructor(
+        idiomas: number,
+        name: string,
+        geometry: any
+    ) {
+        this.idiomas = idiomas;
+        this.name = name;
+        this.geometry = geometry;
+    }
+}
+
+class RiscoFogo {
+    idrisco_fogo: number;
+    data_2: Date;
+    nivel_risco: number;
+
+    constructor(
+        idrisco_fogo: number,
+        data_2: Date,
+        nivel_risco: number
+    ) {
+        this.idrisco_fogo = idrisco_fogo;
+        this.data_2 = data_2;
+        this.nivel_risco = nivel_risco;
+    }
+}
+
+class FocoCalor {
+    idfocos_calor: number;
+    data_2: Date;
+    latitudeLongitude: number;
+    satelite: string;
+    municipio: string;
+
+    constructor(
+        idfocos_calor: number,
+        data_2: Date,
+        latitudeLongitude: number,
+        satelite: string,
+        municipio: string
+    ) {
+        this.idfocos_calor = idfocos_calor;
+        this.data_2 = data_2;
+        this.latitudeLongitude = latitudeLongitude;
+        this.satelite = satelite;
+        this.municipio = municipio;
+    }
+}
+
+class AreaQueimada {
+    idareas_queimdadas: number;
+    data_2: Date;
+    area_ha: number;
+    geometry: any;
+
+    constructor(
+        idareas_queimdadas: number,
+        data_2: Date,
+        area_ha: number,
+        geometry: any
+    ) {
+        this.idareas_queimdadas = idareas_queimdadas;
+        this.data_2 = data_2;
+        this.area_ha = area_ha;
+        this.geometry = geometry;
+    }
+}
