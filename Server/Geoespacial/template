@@ -1,0 +1,61 @@
+-- SQL SUPREMO, nome de refrencia	
+    
+    	EXTENSÃO NECESSARIA (POSTGIS)
+	create extension if not exists postgis;
+
+
+
+		CRIAÇÃO DA TABELA DE FOCOS
+CREATE TABLE focos_diario (
+    id UUID PRIMARY KEY,
+    lat DECIMAL(8,6),
+    lon DECIMAL(9,6),
+    data_hora_gmt TIMESTAMP,
+    satelite VARCHAR(50),
+    municipio VARCHAR(100),
+    estado VARCHAR(100),
+    pais VARCHAR(50),
+    municipio_id INT,
+    estado_id INT,
+    pais_id INT,
+    numero_dias_sem_chuva INT,
+    precipitacao DECIMAL(5,2),
+    risco_fogo DECIMAL(6,2),
+    bioma VARCHAR(50),
+    frp DECIMAL(5,1),
+    geometry GEOMETRY(POINT, 4326) GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(lon, lat), 4326)) STORED
+);
+
+
+COPY focos_diario (id, lat, lon, data_hora_gmt, satelite, municipio, estado, pais, municipio_id, estado_id, pais_id, numero_dias_sem_chuva, precipitacao, risco_fogo, bioma, frp)
+FROM 'C:\focos_diario.csv'
+DELIMITER ','
+CSV header
+
+
+
+			VER AS TABELAS DE FOCOS
+select * from focos_diario
+
+	*IMPORTAR A TABELA ESTADOS SE POSSIVEL*
+select geom from estados e where e.sigla_uf = 'SP'
+
+
+
+
+		UNIAO DAS GEOMETRIAS FOCOS E ESTADO
+SELECT 'estado' AS tipo, e.geom 
+FROM estados e 
+WHERE e.sigla_uf = 'SP'
+ 
+UNION ALL
+ 
+SELECT 'foco' AS tipo, fq.geometry
+FROM focos_diario fq 
+JOIN estados e ON ST_Intersects(e.geom, fq.geometry)
+WHERE e.sigla_uf = 'SP';
+
+
+
+
+
