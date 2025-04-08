@@ -10,7 +10,4 @@ O projeto está sendo desenvolvido pelos alunos do 2ºDSM da Fatec Jacareí, vis
  
 1. [BackEnd](BackEnd/)
 2. [Server](Server/)
-3. [Equipe Scrum](equipe-scrum.md)
-4. [Relatório da Primeira Sprint](relatorio-primeira-sprint.md)
-5. [Sprint Backlog](sprint-backlog.md)
- 
+
