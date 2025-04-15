@@ -1,3 +1,7 @@
+# Ignora a pasta node_modules
+node_modules/
+
+# outras extencoes
 tsconfig.json
 package-lock.json
 package.json
