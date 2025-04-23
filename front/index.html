@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mapa de Focos</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+  <style>
+    #map { 
+      height: 900px; 
+      width: 100%; 
+      margin-top: 10px; 
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    body { 
+      font-family: sans-serif; 
+      padding: 20px;
+      max-width: 1900px;
+      margin: 0 auto;
+    }
+    .controls {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 8px 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    select {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ced4da;
+    }
+    .loading {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <h2>Mapa de Focos de Calor</h2>
+    <label for="estado">Filtrar por estado:</label>
+    <select id="estado">
+      <option value="">Todos os estados</option>
+      <option value="11">RO</option>
+      <option value="12">AC</option>
+      <option value="13">AM</option>
+      <option value="14">RR</option>
+      <option value="15">PA</option>
+      <option value="16">AP</option>
+      <option value="17">TO</option>
+      <option value="21">MA</option>
+      <option value="22">PI</option>
+      <option value="23">CE</option>
+      <option value="24">RN</option>
+      <option value="25">PB</option>
+      <option value="26">PE</option>
+      <option value="27">AL</option>
+      <option value="28">SE</option>
+      <option value="29">BA</option>
+      <option value="31">MG</option>
+      <option value="32">ES</option>
+      <option value="33">RJ</option>
+      <option value="35">SP</option>
+      <option value="41">PR</option>
+      <option value="42">SC</option>
+      <option value="43">RS</option>
+      <option value="50">MS</option>
+      <option value="51">MT</option>
+      <option value="52">GO</option>
+      <option value="53">DF</option>
+    </select>
+    <button onclick="carregarDados()">Buscar</button>
+    <div id="contador">Focos carregados: 0</div>
+  </div>
+
+  <div id="map"></div>
+  <div id="loading" class="loading">Carregando dados...</div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Inicializa o mapa
+    const map = L.map('map').setView([-15, -55], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    
+    let geoLayer;
+    let markers = [];
+
+    // Função para carregar os dados
+    async function carregarDados() {
+      const estado = document.getElementById('estado').value;
+      const loading = document.getElementById('loading');
+      loading.style.display = 'block';
+      
+      try {
+        const url = estado
+          ? `/api/focos?estado=${estado}`
+          : '/api/focos';
+
+        const res = await fetch(url);
+        
+        if (!res.ok) {
+          throw new Error(`Erro HTTP: ${res.status}`);
+        }
+        
+        const geojson = await res.json();
+
+        // Remove a camada anterior se existir
+        if (geoLayer) {
+          map.removeLayer(geoLayer);
+          markers = [];
+        }
+
+        // Cria marcadores com estilo personalizado
+        geoLayer = L.geoJSON(geojson, {
+          pointToLayer: function(feature, latlng) {
+            const marker = L.circleMarker(latlng, {
+              radius: 6,
+              fillColor: getColorByEstado(feature.properties.estado),
+              color: '#000',
+              weight: 1,
+              opacity: 1,
+              fillOpacity: 0.8
+            }).bindPopup(`
+              <b>Estado:</b> ${getEstadoName(feature.properties.estado)}<br>
+              <b>Coordenadas:</b> ${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}
+            `);
+            
+            markers.push(marker);
+            return marker;
+          }
+        }).addTo(map);
+
+        // Atualiza o contador
+        document.getElementById('contador').textContent = `Focos carregados: ${markers.length}`;
+        
+        // Ajusta o zoom para mostrar todos os marcadores
+        if (markers.length > 0) {
+          const group = new L.featureGroup(markers);
+          map.fitBounds(group.getBounds());
+        }
+
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        alert('Erro ao carregar dados. Verifique o console para mais detalhes.');
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    // Função auxiliar para obter cor baseada no estado
+    function getColorByEstado(estado) {
+      const colors = {
+        '11': '#ff0000', '12': '#00ff00', '13': '#0000ff', '14': '#ffff00',
+        '15': '#ff00ff', '16': '#00ffff', '17': '#ff9900', '21': '#9900ff',
+        '22': '#009900', '23': '#990000', '24': '#000099', '25': '#999900',
+        '26': '#009999', '27': '#990099', '28': '#666600', '29': '#006666',
+        '31': '#660066', '32': '#ff6600', '33': '#00ff66', '35': '#6600ff',
+        '41': '#ff0066', '42': '#66ff00', '43': '#0066ff', '50': '#ff6600',
+        '51': '#00ff66', '52': '#6600ff', '53': '#ff0066'
+      };
+      return colors[estado] || '#ff7800';
+    }
+
+    // Função auxiliar para obter nome do estado
+    function getEstadoName(estadoCode) {
+      const estados = {
+        '11': 'Rondônia', '12': 'Acre', '13': 'Amazonas', '14': 'Roraima',
+        '15': 'Pará', '16': 'Amapá', '17': 'Tocantins', '21': 'Maranhão',
+        '22': 'Piauí', '23': 'Ceará', '24': 'Rio Grande do Norte', '25': 'Paraíba',
+        '26': 'Pernambuco', '27': 'Alagoas', '28': 'Sergipe', '29': 'Bahia',
+        '31': 'Minas Gerais', '32': 'Espírito Santo', '33': 'Rio de Janeiro',
+        '35': 'São Paulo', '41': 'Paraná', '42': 'Santa Catarina', '43': 'Rio Grande do Sul',
+        '50': 'Mato Grosso do Sul', '51': 'Mato Grosso', '52': 'Goiás', '53': 'Distrito Federal'
+      };
+      return estados[estadoCode] || 'Desconhecido';
+    }
+
+    // Carrega os dados inicialmente
+    document.addEventListener('DOMContentLoaded', carregarDados);
+  </script>
+</body>
+</html>
