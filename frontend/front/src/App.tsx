@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
 import L, { GeoJSON } from 'leaflet';
-import axios from 'axios';
+import 'leaflet/dist/leaflet.css'; // <-- Adicionado aqui
+import { fetchGeoJson } from './services/fetchGeoJson';
+
 
 // Tipagem para o mapa com suporte a geoJsonLayer
 type MapWithGeoJson = L.Map & {
   geoJsonLayer?: GeoJSON;
 };
+
 
 const estados = [
   { sigla: '12', nome: 'Acre' },
@@ -69,22 +72,22 @@ function App() {
       alert('Selecione um valor válido para estado ou bioma');
       return;
     }
-
+  
     try {
-      const params = filtro.includes('estado') ? { estado: valor } : { bioma };
-      const response = await axios.get(`http://localhost:4000/api/${filtro}`, { params });
-
+      const data = await fetchGeoJson({ filtro, valor, bioma });
+  
       if (mapRef.current?.geoJsonLayer) {
         mapRef.current.removeLayer(mapRef.current.geoJsonLayer);
       }
-
-      const geoJsonLayer = L.geoJSON(response.data);
+  
+      const geoJsonLayer = L.geoJSON(data);
       geoJsonLayer.addTo(mapRef.current!);
       mapRef.current!.geoJsonLayer = geoJsonLayer;
     } catch (error) {
       console.error('Erro ao buscar dados', error);
     }
   };
+  
 
   return (
     <div className="App">

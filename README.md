@@ -11,6 +11,9 @@ O projeto está sendo desenvolvido pelos alunos do 2ºDSM da Fatec Jacareí, vis
 1. [BackEnd](BackEnd/)
 2. [Server](Server/)
 
+## ⚠ Observação 
+
+Este repositório tem como objetivo armazenar todo o nosso sistema. Caso você queira acompanhar o progresso de documentação, acesse o [repositório aqui](https://github.com/CodeGators/CodeGators---Documentacao). Lá estão disponíveis todos os arquivos sobre o nosso projeto.
 
 <h2>Equipe</h2>
 
