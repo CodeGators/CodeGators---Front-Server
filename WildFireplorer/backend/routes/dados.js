@@ -146,4 +146,85 @@ router.get('/area-bioma', async (req, res) => {
   }
 });
 
+
+// ——— DADOS graficos: FOCOS POR ESTADO ———
+router.get('/dados/focos-por-estado', async (req, res) => {
+  const { estado, mes, satelite } = req.query;
+  const params = [];
+  const where = [];
+
+  if (estado) {
+    params.push(estado);
+    where.push(`fc.estado_id = $${params.length}`);
+  }
+  if (mes) {
+    params.push(mes);
+    where.push(`to_char(fc.data_hora_gmt::date, 'YYYY-MM') = $${params.length}`);
+  }
+  if (satelite) {
+    params.push(satelite);
+    where.push(`fc.satelite = $${params.length}`);
+  }
+
+  const sql = `
+    SELECT 
+      e.nm_uf AS estado,
+      to_char(fc.data_hora_gmt::date, 'YYYY-MM') AS month,
+      COUNT(*) AS total
+    FROM focos_calor fc
+    JOIN estados e ON fc.estado_id = e.cd_uf
+    ${where.length > 0 ? 'WHERE ' + where.join(' AND ') : ''}
+    GROUP BY e.nm_uf, month
+    ORDER BY e.nm_uf, month;
+  `;
+
+  try {
+    const { rows } = await pool.query(sql, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('ERRO /dados/focos-por-estado:', err);
+    res.status(500).send('Erro no servidor');
+  }
+});
+
+// ——— DADOS graficos: FOCOS POR BIOMA ———
+router.get('/dados/focos-por-bioma', async (req, res) => {
+  const { bioma, mes, satelite } = req.query;
+  const params = [];
+  const where = [];
+
+  if (bioma) {
+    params.push(bioma);
+    where.push(`fc.bioma_id = $${params.length}`);
+  }
+  if (mes) {
+    params.push(mes);
+    where.push(`to_char(fc.data_hora_gmt::date, 'YYYY-MM') = $${params.length}`);
+  }
+  if (satelite) {
+    params.push(satelite);
+    where.push(`fc.satelite = $${params.length}`);
+  }
+
+  const sql = `
+    SELECT 
+      b.bioma AS bioma,
+      to_char(fc.data_hora_gmt::date, 'YYYY-MM') AS month,
+      COUNT(*) AS total
+    FROM focos_calor fc
+    JOIN biomas b ON fc.bioma_id = b.gid
+    ${where.length > 0 ? 'WHERE ' + where.join(' AND ') : ''}
+    GROUP BY b.bioma, month
+    ORDER BY b.bioma, month;
+  `;
+
+  try {
+    const { rows } = await pool.query(sql, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('ERRO /dados/focos-por-bioma:', err);
+    res.status(500).send('Erro no servidor');
+  }
+});
+
 module.exports = router;
