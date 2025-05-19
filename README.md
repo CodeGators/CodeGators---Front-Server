@@ -8,8 +8,9 @@ O projeto está sendo desenvolvido pelos alunos do 2ºDSM da Fatec Jacareí, vis
  
 ## 📂 Índice
  
-1. [BackEnd](BackEnd/)
-2. [Server](Server/)
+1. [Requisitos](Requisitos/)
+2. [WildFirExplorer](WildFirExplorer/)
+3. [Banco de Dados](BancoDeDados/)
 
 ## ⚠ Observação 
 
