@@ -5,9 +5,11 @@ export type Filter = {
   estado?: string;
   bioma?: string;
   tipo: 'Focos' | 'Queimadas' | 'Risco';
-  mes?: string;   // Mes no formato YYYY-MM
+  mes?: string;
   satelite?: string;
+  estadoPoligono?: boolean; // novo campo
 };
+
 
 type FilterContextType = {
   filters: Filter;
@@ -20,7 +22,8 @@ const defaultFilter: Filter = {
   bioma: '',
   tipo: 'Focos',
   mes: '',
-  satelite: ''
+  satelite: '',
+  estadoPoligono: false, // novo valor inicial
 };
 
 export const FilterContext = createContext<FilterContextType>({

@@ -1,38 +1,55 @@
 import { useContext, useEffect, useState } from 'react';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styled from 'styled-components';
 import { FilterContext } from '../contexts/FilterContext';
-import fogoIconUrl from './fogo.png';
 
-// ✅ Tipagem precisa para o GeoJson
+import fogoBaixo from './images/fogobaixo.png';
+import fogoMedio from './images/fogomedio.png';
+import fogoAlto from './images/fogoalto.png';
+import fogoMuitoAlto from './images/fogomuitoalto.png';
+
 type GeoJson = {
   type: 'FeatureCollection';
   features: Array<{
     type: 'Feature';
     geometry: {
-      type: 'Point' | 'Polygon' | 'MultiPolygon';  // Tipagem para tipos específicos de geometria
-      coordinates: [number, number] | number[][][];  // Tipagem para pontos e polígonos
+      type: 'Point' | 'Polygon' | 'MultiPolygon';
+      coordinates: any;
     };
-    properties: Record<string, unknown>;  // Usando Record<string, unknown> para evitar o uso de 'any'
+    properties: Record<string, unknown>;
   }>;
 };
 
-
-// ✅ Tipagem clara para as props do LayerControl
-interface LayerControlProps {
-  geojson: GeoJson;
-  tipo: 'Focos' | 'Áreas';  // Tipagem restrita para o tipo de dado
-}
-
-// Use this to wrap the map
 const Wrapper = styled.div`
   width: 100%;
   height: calc(100vh - 60px);
 `;
 
-function LayerControl({ geojson, tipo }: LayerControlProps) {
+function getIconByFRP(frp: number | null | undefined) {
+  let iconUrl = fogoBaixo;
+
+  if (frp == null || isNaN(frp)) {
+    iconUrl = fogoBaixo;
+  } else if (frp < 10) {
+    iconUrl = fogoBaixo;
+  } else if (frp < 30) {
+    iconUrl = fogoMedio;
+  } else if (frp < 100) {
+    iconUrl = fogoAlto;
+  } else {
+    iconUrl = fogoMuitoAlto;
+  }
+
+  return L.icon({
+    iconUrl,
+    iconSize: [40, 40],
+    iconAnchor: [12, 12],
+  });
+}
+
+function LayerControl({ geojson, tipo }: { geojson: GeoJson;   tipo: 'Focos' | 'Queimadas' | 'Risco' | 'Áreas' }) {
   const map = useMap();
   const [layer] = useState(() => L.layerGroup().addTo(map));
 
@@ -41,14 +58,22 @@ function LayerControl({ geojson, tipo }: LayerControlProps) {
     if (!geojson || !geojson.features) return;
 
     if (tipo === 'Focos') {
-      const fireIcon = L.icon({
-        iconUrl: fogoIconUrl,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
-      });
-
       L.geoJSON(geojson, {
-        pointToLayer: (_, latlng) => L.marker(latlng, { icon: fireIcon }),
+        pointToLayer: (feature, latlng) => {
+          const rawFrp = feature.properties?.frp;
+          const frp = typeof rawFrp === 'number' ? rawFrp : parseFloat(String(rawFrp));
+          return L.marker(latlng, { icon: getIconByFRP(frp) });
+        },
+        onEachFeature: (feature, layer) => {
+          const { frp, satelite, risco_fogo, data_hora } = feature.properties || {};
+          const popup = `
+            <strong>FRP:</strong> ${frp ?? 'N/A'}<br/>
+            <strong>Satélite:</strong> ${satelite ?? 'N/A'}<br/>
+            <strong>Risco de Fogo:</strong> ${risco_fogo ?? 'N/A'}<br/>
+            <strong>Data:</strong> ${data_hora ? new Date(data_hora).toLocaleString() : 'N/A'}
+          `;
+          layer.bindPopup(popup);
+        },
       }).addTo(layer);
     } else {
       L.geoJSON(geojson).addTo(layer);
@@ -58,22 +83,13 @@ function LayerControl({ geojson, tipo }: LayerControlProps) {
   return null;
 }
 
-type FilterContextType = {
-  filters: {
-    tipo: 'Focos' | 'Áreas';  // Restrito para dois tipos
-    estado?: string;
-    bioma?: string;
-    mes?: string;
-    satelite?: string;
-  };
-};
-
 export default function Map() {
-  const { filters } = useContext(FilterContext) as FilterContextType;  // Tipando corretamente o contexto
+  const { filters } = useContext(FilterContext)!;
   const [geojson, setGeojson] = useState<GeoJson | null>(null);
+  const [estadoPoligono, setEstadoPoligono] = useState<GeoJson | null>(null);
 
   useEffect(() => {
-    if (!filters?.mes) return; // Garantir que mes esteja definido
+    if (!filters?.mes) return;
 
     const { tipo, estado, bioma, mes, satelite } = filters;
 
@@ -101,11 +117,28 @@ export default function Map() {
       });
   }, [filters]);
 
+  // ✅ buscar polígono do estado, se checkbox estiver ativo
+  useEffect(() => {
+    if (!filters.estado || !filters.estadoPoligono) {
+      setEstadoPoligono(null);
+      return;
+    }
+
+    fetch(`http://localhost:4000/api/estado-poligono?codigo=${filters.estado}`)
+      .then((r) => r.json())
+      .then((data: GeoJson) => setEstadoPoligono(data))
+      .catch((err) => {
+        console.error('Erro ao carregar polígono do estado:', err);
+        setEstadoPoligono(null);
+      });
+  }, [filters.estado, filters.estadoPoligono]);
+
   return (
     <Wrapper>
       <MapContainer center={[-15, -55]} zoom={5} style={{ width: '100%', height: '100%' }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {geojson && <LayerControl geojson={geojson} tipo={filters.tipo} />}
+        {estadoPoligono && <GeoJSON data={estadoPoligono} style={{ color: 'blue', weight: 2 }} />}
       </MapContainer>
     </Wrapper>
   );

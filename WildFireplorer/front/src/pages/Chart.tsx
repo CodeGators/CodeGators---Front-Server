@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import styled from "styled-components";
 import { FilterContext } from "../contexts/FilterContext";
 import Sidebar from "../components/Sidebar";
@@ -13,18 +13,8 @@ import {
 } from "recharts";
 import { Sort } from "../services/bubble_sort";
 
-// Tipagem para os dados de estado e bioma
-type StateDataType = {
-  month: string; // estado
-  count: number;
-};
 
-type BiomeDataType = {
-  bioma: string;
-  count: number;
-};
 
-// Estilos reutilizados da página Dashboard
 const Layout = styled.div`
   display: flex;
   flex-direction: column;
@@ -53,53 +43,60 @@ const MainArea = styled.div`
   overflow-y: auto;
 `;
 
+type StateDataType = {
+  month: string; // estado
+  count: number;
+};
+
+type BiomeDataType = {
+  bioma: string;
+  count: number;
+};
 export default function ChartPage() {
-  // Use o contexto inteiro ou remova se não estiver usando nada agora
-  const filterContext = useContext(FilterContext);
+  const { filters } = useContext(FilterContext);
+  const [stateData, setStateData] = useState<StateDataType[]>([]);
+  const [biomeData, setBiomeData] = useState<BiomeDataType[]>([]);
 
-  // Dados mockados com bioma para agregação depois
-  const data = [
-    { month: "AC", count: 30, bioma: "Amazônia" },
-    { month: "AL", count: 45, bioma: "Caatinga" },
-    { month: "AM", count: 50, bioma: "Amazônia" },
-    { month: "BA", count: 40, bioma: "Caatinga" },
-    { month: "DF", count: 80, bioma: "Cerrado" },
-    { month: "GO", count: 65, bioma: "Cerrado" },
-    { month: "MG", count: 30, bioma: "Mata Atlântica" },
-    { month: "PA", count: 45, bioma: "Amazônia" },
-    { month: "RJ", count: 80, bioma: "Mata Atlântica" },
-    { month: "RS", count: 65, bioma: "Pampa" },
-    { month: "RO", count: 75, bioma: "Amazônia" },
-    { month: "SC", count: 60, bioma: "Mata Atlântica" },
-    { month: "SP", count: 30, bioma: "Mata Atlântica" },
-    { month: "TO", count: 60, bioma: "Cerrado" },
-  ];
+  useEffect(() => {
+    if (!filters.mes) return;
 
-  const sorter = new Sort<StateDataType | BiomeDataType>();
+    const params = new URLSearchParams({ mes: filters.mes });
+    if (filters.satelite) params.set("satelite", filters.satelite);
 
-  // Prepara dados para gráfico por estado (somente month e count)
-  const stateDataUnsorted: StateDataType[] = data.map(({ month, count }) => ({
-    month,
-    count,
-  }));
+    const fetchData = async () => {
+      try {
+        const [resEstados, resBiomas] = await Promise.all([
+          fetch(`http://localhost:4000/api/dados/focos-por-estado?${params}`),
+          fetch(`http://localhost:4000/api/dados/focos-por-bioma?${params}`),
+        ]);
+        
 
-  // Prepara dados para gráfico por bioma, somando counts por bioma
-  const biomeDataUnsorted: BiomeDataType[] = data.reduce(
-    (acc: BiomeDataType[], curr) => {
-      const found = acc.find((item) => item.bioma === curr.bioma);
-      if (found) {
-        found.count += curr.count;
-      } else {
-        acc.push({ bioma: curr.bioma, count: curr.count });
+        const dadosEstado = await resEstados.json();
+        const dadosBioma = await resBiomas.json();
+
+        const estados = dadosEstado.map((item: any) => ({
+          month: item.estado,
+          count: parseInt(item.total), // ESSENCIAL
+        }));
+        
+        const biomas = dadosBioma.map((item: any) => ({
+          bioma: item.bioma,
+          count: parseInt(item.total), // ESSENCIAL
+        }));
+        
+
+        const sorterEstados = new Sort<StateDataType>();
+const sorterBiomas = new Sort<BiomeDataType>();
+
+setStateData(sorterEstados.bubbleSort(estados, "count"));
+setBiomeData(sorterBiomas.bubbleSort(biomas, "count"));
+      } catch (error) {
+        console.error("Erro ao buscar dados:", error);
       }
-      return acc;
-    },
-    []
-  );
+    };
 
-  // Ordena os dados por count crescente
-  const stateData = sorter.bubbleSort(stateDataUnsorted, "count");
-  const biomeData = sorter.bubbleSort(biomeDataUnsorted, "count");
+    fetchData();
+  }, [filters]);
 
   return (
     <Layout>
@@ -113,7 +110,7 @@ export default function ChartPage() {
 
           {/* Gráfico por Estado */}
           <div className="mb-10">
-            <h2 className="text-lg font-semibold mb-2">Gráfico por Estado</h2>
+            <h2 className="text-lg font-semibold mb-2">Gráfico Focos por Estado</h2>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={stateData}>
                 <XAxis dataKey="month" />
@@ -126,7 +123,7 @@ export default function ChartPage() {
 
           {/* Gráfico por Bioma */}
           <div>
-            <h2 className="text-lg font-semibold mb-2">Gráfico por Bioma</h2>
+            <h2 className="text-lg font-semibold mb-2">Gráfico Focos por Bioma</h2>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={biomeData}>
                 <XAxis dataKey="bioma" />

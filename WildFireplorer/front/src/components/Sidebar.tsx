@@ -123,6 +123,17 @@ export default function Sidebar() {
       </Label>
 
       <Label>
+        <input
+          type="checkbox"
+          checked={filters.estadoPoligono}
+          onChange={(e) =>
+            setFilters({ ...filters, estadoPoligono: e.target.checked })
+          }
+        />
+        Mostrar polígono do estado
+      </Label>
+
+      <Label>
         Bioma:
         <Select
           value={filters.bioma}
