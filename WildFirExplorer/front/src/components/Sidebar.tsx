@@ -260,15 +260,15 @@ export default function Sidebar() {
             </LegendItem>
             <LegendItem>
             <img src={fogoMedio} alt="Médio" width={24} />
-            <span>Médio (10 ≤ FRP &lt; 30)</span>
+            <span>Médio (FRP &lt; 30)</span>
             </LegendItem>
             <LegendItem>
             <img src={fogoAlto} alt="Alto" width={24} />
-            <span>Alto (30 ≤ FRP &lt; 100)</span>
+            <span>Alto (FRP &lt; 100)</span>
             </LegendItem>
             <LegendItem>
             <img src={fogoMuitoAlto} alt="Muito Alto" width={24} />
-            <span>Muito Alto (FRP ≥ 100)</span>
+            <span>Muito Alto (FRP &gt; 100)</span>
             </LegendItem>
           </LegendContainer>
         </>

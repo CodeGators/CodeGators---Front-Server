@@ -49,7 +49,7 @@ function getIconByFRP(frp: number | null | undefined) {
   });
 }
 
-function LayerControl({ geojson, tipo }: { geojson: GeoJson;   tipo: 'Focos' | 'Queimadas' | 'Risco' | 'Áreas' }) {
+function LayerControl({ geojson, tipo }: { geojson: GeoJson; tipo: 'Focos' | 'Queimadas' | 'Risco' | 'Áreas' }) {
   const map = useMap();
   const [layer] = useState(() => L.layerGroup().addTo(map));
 
@@ -99,8 +99,8 @@ export default function Map() {
           ? 'focos-bioma'
           : 'focos-estado'
         : bioma
-        ? 'area-bioma'
-        : 'area-estado';
+          ? 'area-bioma'
+          : 'area-estado';
 
     const params = new URLSearchParams();
     if (estado) params.set('estado', estado);
@@ -110,35 +110,74 @@ export default function Map() {
 
     fetch(`http://localhost:4000/api/${rota}?${params}`)
       .then((r) => r.json())
-      .then((data: GeoJson) => setGeojson(data))
-      .catch((err) => {
-        console.error('Erro ao carregar GeoJSON:', err);
-        setGeojson(null);
+      .then((data: GeoJson) => {
+        console.log('GeoJSON recebido:', data);
+
+        // Validação básica
+        if (
+          !data ||
+          data.type !== 'FeatureCollection' ||
+          !Array.isArray(data.features)
+        ) {
+          console.warn('GeoJSON inválido:', data);
+          return;
+        }
+
+        setGeojson(data);
       });
+
   }, [filters]);
 
-  // ✅ buscar polígono do estado, se checkbox estiver ativo
+
   useEffect(() => {
-    if (!filters.estado || !filters.estadoPoligono) {
+    // se a checkbox estiver desmarcada, limpa tudo
+    if (!filters.estadoPoligono) {
       setEstadoPoligono(null);
       return;
     }
 
-    fetch(`http://localhost:4000/api/estado-poligono?codigo=${filters.estado}`)
+    // se não tiver estado, limpa
+    if (!filters.estado) {
+      setEstadoPoligono(null);
+      return;
+    }
+
+    // guarda o código do estado para comparar depois
+    const codigo = filters.estado;
+
+    // imediatamente limpa o polígono antigo
+    setEstadoPoligono(null);
+
+    console.log('🔄 Buscando polígono para:', codigo);
+    fetch(`http://localhost:4000/api/poligono-estado?estado=${codigo}`)
       .then((r) => r.json())
-      .then((data: GeoJson) => setEstadoPoligono(data))
+      .then((data: GeoJson) => {
+        // só aplica se ainda estivermos no mesmo estado
+        if (filters.estado === codigo) {
+          console.log('📥 Polígono recebido para:', codigo, data);
+          setEstadoPoligono(data);
+        }
+      })
       .catch((err) => {
         console.error('Erro ao carregar polígono do estado:', err);
         setEstadoPoligono(null);
       });
   }, [filters.estado, filters.estadoPoligono]);
 
+
+
   return (
     <Wrapper>
       <MapContainer center={[-15, -55]} zoom={5} style={{ width: '100%', height: '100%' }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {geojson && <LayerControl geojson={geojson} tipo={filters.tipo} />}
-        {estadoPoligono && <GeoJSON data={estadoPoligono} style={{ color: 'blue', weight: 2 }} />}
+        {filters.estadoPoligono && estadoPoligono && (
+          <GeoJSON
+            key={filters.estado}           // força remount
+            data={estadoPoligono}
+            style={{ color: 'blue', weight: 2 }}
+          />
+        )}
       </MapContainer>
     </Wrapper>
   );
