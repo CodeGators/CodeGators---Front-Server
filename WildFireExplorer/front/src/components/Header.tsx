@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import { FaFire, FaMapMarkedAlt, FaChartBar } from 'react-icons/fa';
 import { Link, useLocation } from 'react-router-dom';
+import codegators from "./images/codegators.png";
 
 const Container = styled.header`
   height: 80px;
@@ -49,6 +50,14 @@ const Left = styled.div`
       transform: scale(1.1);
       opacity: 0.8;
     }
+  }
+
+  a img {
+    transition: transform 0.3s ease;
+  }
+
+  a:hover img {
+    transform: scale(1.05);
   }
 `;
 
@@ -107,8 +116,11 @@ export default function Header() {
   return (
     <Container>
       <Left>
-        <FaFire /> 
+        <FaFire />
         <LogoText>WildFireExplorer</LogoText>
+        <a href="https://github.com/CodeGators" target="_blank" rel="noopener noreferrer">
+          <img src={codegators} alt="gordozilla" width={100} />
+        </a>
       </Left>
       <Right>
         <NavButton to="/" active={location.pathname === '/'}>
